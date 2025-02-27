@@ -1,0 +1,4 @@
+*.db
+*.duckdb
+qdrant_storage
+main
