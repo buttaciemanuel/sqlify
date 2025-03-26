@@ -12,7 +12,7 @@ type QdrantStore struct {
 	embedder embed.Embedder
 }
 
-func NewQdrantStore(embedder embed.Embedder) (*QdrantStore, error) {
+func Qdrant(embedder embed.Embedder) (*QdrantStore, error) {
 	client, err := qdrant.NewClient(&qdrant.Config{
 		Host: "localhost",
 		Port: 6334,

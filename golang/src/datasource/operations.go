@@ -36,7 +36,7 @@ func execute(connection *sql.DB, statement string) ([]map[string]any, error) {
 
 		for i, v := range scans {
 			if v != nil {
-				row[attributes[i]] = v.(string)
+				row[attributes[i]] = v
 			}
 		}
 

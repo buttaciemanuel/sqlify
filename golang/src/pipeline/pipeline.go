@@ -71,17 +71,21 @@ func (pipeline *Pipeline) DefineExample(name string, query string) error {
 }
 
 func (pipeline *Pipeline) Execute(query string) ([]map[string]any, error) {
-	schemas, err := pipeline.context.FetchSimilarDocuments("schema", query, 1)
+	schemas, err := pipeline.context.FetchSimilarDocuments("schema", query, 5)
 
 	if err != nil {
 		return nil, err
 	}
 
-	examples, err := pipeline.context.FetchSimilarDocuments("example", query, 1)
+	schemas = append(schemas, pipeline.prompt.Schemas.Samples...)
+
+	examples, err := pipeline.context.FetchSimilarDocuments("example", query, 5)
 
 	if err != nil {
 		return nil, err
 	}
+
+	examples = append(examples, pipeline.prompt.Examples.Samples...)
 
 	prompt := pipeline.prompt.Build(query, schemas, examples)
 

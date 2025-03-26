@@ -17,10 +17,14 @@ type Database struct {
 	connection *sql.DB
 }
 
-func DuckDb(persistentFilePath string) (*Database, error) {
+func Duckdb(persistentFilePath string) (*Database, error) {
 	connection, err := open("duckdb", persistentFilePath)
 
 	if err != nil {
+		return nil, err
+	}
+
+	if _, err := execute(connection, "INSTALL spatial; LOAD spatial;"); err != nil {
 		return nil, err
 	}
 

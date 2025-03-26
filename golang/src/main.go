@@ -1,15 +1,6 @@
 package main
 
-import (
-	"fmt"
-	"os"
-
-	"github.com/buttaciemanuel/sqlify/context"
-	"github.com/buttaciemanuel/sqlify/datasource"
-	"github.com/buttaciemanuel/sqlify/embed"
-	"github.com/buttaciemanuel/sqlify/pipeline"
-	"github.com/buttaciemanuel/sqlify/prompt"
-)
+import "github.com/buttaciemanuel/sqlify/cli"
 
 // func main() {
 // 	store, err := context.NewQdrantStore()
@@ -171,66 +162,80 @@ import (
 // }
 
 func main() {
-	context, err := context.NewQdrantStore(embed.SnowflakeArticEmbed)
+	// --------------------------------------------
 
-	if err != nil {
-		panic(err)
-	}
+	// config, err := cli.Parse(os.Args[2])
 
-	if err := context.Clear(); err != nil {
-		panic(err)
-	}
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	database, err := datasource.DuckDb("../../database.duckdb")
+	// fmt.Println(*config)
 
-	if err != nil {
-		panic(err)
-	}
+	// --------------------------------------------
 
-	assistant, err := pipeline.New(&pipeline.Config{
-		Context:  context,
-		Database: database,
-		Prompt: prompt.Prompt{
-			Sections: []prompt.TextSection{
-				{
-					Title: "Task",
-					Body:  "You are a SQL query builder for a specific knowledge base.",
-				},
-				{
-					Title: "Rules",
-					Items: []string{
-						"Only use the tables specified before to generate the SQL query.",
-						"Only output a SQL statement without explanation.",
-					},
-				},
-				{
-					Title: "Instruction",
-					Body:  "Your objective is to generate a valid SQL query from the following user input using the given relational table and prior example of queries.",
-				},
-			},
-			Query: prompt.TextSection{
-				Title: "User",
-			},
-			Schemas: prompt.CodeSection{
-				Title: "Schemas",
-			},
-			Examples: prompt.CodeSection{
-				Title: "Examples",
-			},
-		},
-		Model:      "llama3.2",
-		AutoSchema: true,
-	})
+	// context, err := context.Qdrant(embed.SnowflakeArticEmbed)
 
-	if err != nil {
-		panic(err)
-	}
+	// if err != nil {
+	// 	panic(err)
+	// }
 
-	results, err := assistant.Execute(os.Args[1])
+	// if err := context.Clear(); err != nil {
+	// 	panic(err)
+	// }
 
-	if err != nil {
-		panic(err)
-	}
+	// database, err := datasource.Duckdb("../../database.duckdb")
 
-	fmt.Printf("%v\n", results)
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// assistant, err := pipeline.New(&pipeline.Config{
+	// 	Context:  context,
+	// 	Database: database,
+	// 	Prompt: prompt.Prompt{
+	// 		Sections: []prompt.TextSection{
+	// 			{
+	// 				Title: "Task",
+	// 				Body:  "You are a SQL query builder for a specific knowledge base.",
+	// 			},
+	// 			{
+	// 				Title: "Rules",
+	// 				Items: []string{
+	// 					"Only use the tables specified before to generate the SQL query.",
+	// 					"Only output a SQL statement without explanation.",
+	// 				},
+	// 			},
+	// 			{
+	// 				Title: "Instruction",
+	// 				Body:  "Your objective is to generate a valid SQL query from the following user input using the given relational table and prior example of queries.",
+	// 			},
+	// 		},
+	// 		Query: prompt.TextSection{
+	// 			Title: "User",
+	// 		},
+	// 		Schemas: prompt.CodeSection{
+	// 			Title: "Schemas",
+	// 		},
+	// 		Examples: prompt.CodeSection{
+	// 			Title: "Examples",
+	// 		},
+	// 	},
+	// 	Model:      "llama3.2",
+	// 	AutoSchema: true,
+	// })
+
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// results, err := assistant.Execute(os.Args[1])
+
+	// if err != nil {
+	// 	panic(err)
+	// }
+
+	// fmt.Printf("%v\n", results)
+
+	cli.Run()
 }
