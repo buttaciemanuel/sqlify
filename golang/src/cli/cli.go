@@ -6,33 +6,39 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
+	"github.com/spf13/cobra"
+
 	"github.com/buttaciemanuel/sqlify/context"
 	"github.com/buttaciemanuel/sqlify/datasource"
 	"github.com/buttaciemanuel/sqlify/embed"
 	"github.com/buttaciemanuel/sqlify/pipeline"
 	"github.com/buttaciemanuel/sqlify/prompt"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/spf13/cobra"
 )
 
 func Run() error {
 	subcommands := []*cobra.Command{
 		{
 			Use:   "serve",
-			Short: "Run sqlify as a server to ask information to",
+			Short: "Run sqlify as a server to query information to",
 			RunE:  serve,
 		},
 		{
-			Use:   "ask [question]",
+			Use:   "query [query]",
 			Short: "Ask a direct question to sqlify",
 			Args:  cobra.ExactArgs(1),
-			RunE:  ask,
+			RunE:  query,
 		},
 	}
 
-	subcommands[0].PersistentFlags().String("configuration", "config.yaml", "Path to the configuration file")
-	subcommands[1].PersistentFlags().String("configuration", "config.yaml", "Path to the configuration file")
+	subcommands[0].PersistentFlags().
+		String("configuration", "config.yaml", "Path to the configuration file")
+	subcommands[0].PersistentFlags().
+		Uint("port", 3000, "Port number for the server")
+
+	subcommands[1].PersistentFlags().
+		String("configuration", "config.yaml", "Path to the configuration file")
 
 	command := &cobra.Command{
 		Use:   "sqlify [question]",
@@ -50,27 +56,23 @@ func Run() error {
 	return nil
 }
 
-func ask(cmd *cobra.Command, args []string) error {
+func query(cmd *cobra.Command, args []string) error {
 	path, err := cmd.Flags().GetString("configuration")
-
 	if err != nil {
 		return err
 	}
 
 	config, err := configure(path)
-
 	if err != nil {
 		return err
 	}
 
 	assistant, err := pipeline.New(config)
-
 	if err != nil {
 		return err
 	}
 
 	results, err := assistant.Execute(args[0])
-
 	if err != nil {
 		return err
 	}
@@ -88,13 +90,11 @@ func ask(cmd *cobra.Command, args []string) error {
 
 func serve(cmd *cobra.Command, args []string) error {
 	path, err := cmd.Flags().GetString("configuration")
-
 	if err != nil {
 		return err
 	}
 
 	config, err := configure(path)
-
 	if err != nil {
 		return err
 	}
@@ -105,7 +105,7 @@ func serve(cmd *cobra.Command, args []string) error {
 
 	router.Post("/", func(w http.ResponseWriter, r *http.Request) {
 		var body struct {
-			Question string `json:"question"`
+			Query string `json:"query"`
 		}
 
 		defer r.Body.Close()
@@ -116,23 +116,20 @@ func serve(cmd *cobra.Command, args []string) error {
 		}
 
 		assistant, err := pipeline.New(config)
-
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		fmt.Printf("%s", body.Question)
+		fmt.Printf("%s", body.Query)
 
-		results, err := assistant.Execute(body.Question)
-
+		results, err := assistant.Execute(body.Query)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		bytes, err := json.Marshal(results)
-
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
@@ -143,14 +140,16 @@ func serve(cmd *cobra.Command, args []string) error {
 		w.Write(bytes)
 	})
 
-	http.ListenAndServe(":3000", router)
+	port, err := cmd.Flags().GetUint("port")
+	if err != nil {
+		return err
+	}
 
-	return nil
+	return http.ListenAndServe(fmt.Sprintf(":%v", port), router)
 }
 
 func configure(path string) (*pipeline.Config, error) {
 	config, err := Parse(path)
-
 	if err != nil {
 		return nil, err
 	}
@@ -167,7 +166,6 @@ func configure(path string) (*pipeline.Config, error) {
 
 	if config.Context.Store == "qdrant" {
 		connection, err := context.Qdrant(embeddingModel)
-
 		if err != nil {
 			return nil, err
 		}
@@ -175,15 +173,14 @@ func configure(path string) (*pipeline.Config, error) {
 		modelContext = connection
 	}
 
-	if err := modelContext.Clear(); err != nil {
-		return nil, err
-	}
+	// if err := modelContext.Clear(); err != nil {
+	// 	return nil, err
+	// }
 
 	var modelDatabase *datasource.Database
 
 	if len(config.Database.Duckdb.Filename) > 0 {
 		connection, err := datasource.Duckdb(config.Database.Duckdb.Filename)
-
 		if err != nil {
 			return nil, err
 		}
@@ -205,15 +202,30 @@ func configure(path string) (*pipeline.Config, error) {
 	}
 
 	for _, schema := range config.Prompt.Schemas.Items {
-		modelPrompt.Schemas.Samples = append(modelPrompt.Schemas.Samples, context.Document{
-			Value: strings.TrimSpace(schema),
-		})
+		modelPrompt.Schemas.Samples = append(
+			modelPrompt.Schemas.Samples,
+			context.Document{
+				Value: strings.TrimSpace(schema),
+			},
+		)
+	}
+
+	if len(config.Prompt.Examples.From) > 0 {
+		samples, err := parseSamples(config.Prompt.Examples.From)
+		if err != nil {
+			return nil, err
+		}
+
+		config.Prompt.Examples.Items = samples
 	}
 
 	for _, example := range config.Prompt.Examples.Items {
-		modelPrompt.Examples.Samples = append(modelPrompt.Examples.Samples, context.Document{
-			Value: strings.TrimSpace(example),
-		})
+		modelPrompt.Examples.Samples = append(
+			modelPrompt.Examples.Samples,
+			context.Document{
+				Value: strings.TrimSpace(example),
+			},
+		)
 	}
 
 	for _, section := range config.Prompt.Sections {
@@ -228,7 +240,7 @@ func configure(path string) (*pipeline.Config, error) {
 		Context:    modelContext,
 		Database:   modelDatabase,
 		Prompt:     modelPrompt,
-		Model:      config.Model.Name,
+		Model:      config.Model,
 		AutoSchema: config.Database.Autoschema,
 	}, nil
 }

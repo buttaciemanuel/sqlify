@@ -7,7 +7,18 @@ services:
       - 6334:6334
     volumes:
       - store:/qdrant/storage:z
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    pull_policy: always
+    tty: true
+    ports:
+      - 11435:11434
+    volumes:
+        - ollama:/root/.ollama
 
 volumes:
+  ollama:
+    driver: local
   store:
     driver: local

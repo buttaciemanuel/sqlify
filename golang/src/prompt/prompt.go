@@ -18,7 +18,10 @@ type TextSection struct {
 }
 
 func (section *TextSection) Dump(stream *strings.Builder) {
-	title := strings.Join(strings.Split(strings.ToLower(section.Title), " "), "_")
+	title := strings.Join(
+		strings.Split(strings.ToLower(section.Title), " "),
+		"_",
+	)
 
 	stream.WriteString("<")
 	stream.WriteString(title)
@@ -48,7 +51,10 @@ type CodeSection struct {
 }
 
 func (section *CodeSection) Dump(stream *strings.Builder) {
-	title := strings.Join(strings.Split(strings.ToLower(section.Title), " "), "_")
+	title := strings.Join(
+		strings.Split(strings.ToLower(section.Title), " "),
+		"_",
+	)
 
 	stream.WriteString("<")
 	stream.WriteString(title)
@@ -77,7 +83,10 @@ type Prompt struct {
 	Examples CodeSection
 }
 
-func (prompt *Prompt) Build(query string, schemas, examples []context.Document) string {
+func (prompt *Prompt) Build(
+	query string,
+	schemas, examples []context.Document,
+) string {
 	var stream strings.Builder
 
 	for _, section := range prompt.Sections {

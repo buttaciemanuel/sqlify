@@ -8,14 +8,21 @@ import (
 	"strings"
 )
 
-func Generate(model, prompt string) (string, error) {
+type Model struct {
+	Name, Url string
+}
+
+func Generate(model Model, prompt string) (string, error) {
 	params, _ := json.Marshal(map[string]any{
-		"model":  model,
+		"model":  model.Name,
 		"prompt": prompt,
 		"stream": false,
 	})
-	response, err := http.Post("http://localhost:11434/api/generate", "application/json", bytes.NewBuffer(params))
-
+	response, err := http.Post(
+		model.Url, // "http://localhost:11434/api/generate",
+		"application/json",
+		bytes.NewBuffer(params),
+	)
 	if err != nil {
 		return "", sendPromptRequestError(err)
 	}
@@ -23,7 +30,6 @@ func Generate(model, prompt string) (string, error) {
 	defer response.Body.Close()
 
 	body, err := io.ReadAll(response.Body)
-
 	if err != nil {
 		return "", readResponseError(err)
 	}

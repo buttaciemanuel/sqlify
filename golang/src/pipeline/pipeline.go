@@ -14,7 +14,7 @@ type Config struct {
 	Context    context.DocumentStore
 	Database   datasource.DataSource
 	Prompt     prompt.Prompt
-	Model      string
+	Model      ollama.Model
 	AutoSchema bool
 }
 
@@ -22,7 +22,7 @@ type Pipeline struct {
 	context  context.DocumentStore
 	database datasource.DataSource
 	prompt   prompt.Prompt
-	model    string
+	model    ollama.Model
 }
 
 func New(config *Config) (*Pipeline, error) {
@@ -32,7 +32,6 @@ func New(config *Config) (*Pipeline, error) {
 
 	if config.AutoSchema {
 		tables, err := config.Database.GetTables()
-
 		if err != nil {
 			return nil, err
 		}
@@ -40,7 +39,6 @@ func New(config *Config) (*Pipeline, error) {
 		for _, table := range tables {
 			name := table["name"].(string)
 			schema, err := config.Database.GetTableSchema(name)
-
 			if err != nil {
 				return nil, err
 			}
@@ -51,7 +49,27 @@ func New(config *Config) (*Pipeline, error) {
 		}
 	}
 
-	return &Pipeline{context: config.Context, database: config.Database, prompt: config.Prompt, model: config.Model}, nil
+	for _, sample := range config.Prompt.Examples.Samples {
+		contains, err := config.Context.ContainsDocument("example", sample)
+		if err != nil {
+			return nil, err
+		}
+
+		if contains {
+			continue
+		}
+
+		if err := config.Context.StoreDocument("example", sample); err != nil {
+			return nil, err
+		}
+	}
+
+	return &Pipeline{
+		context:  config.Context,
+		database: config.Database,
+		prompt:   config.Prompt,
+		model:    config.Model,
+	}, nil
 }
 
 func (pipeline *Pipeline) DefineSchema(name string, schema string) error {
@@ -72,27 +90,19 @@ func (pipeline *Pipeline) DefineExample(name string, query string) error {
 
 func (pipeline *Pipeline) Execute(query string) ([]map[string]any, error) {
 	schemas, err := pipeline.context.FetchSimilarDocuments("schema", query, 5)
-
 	if err != nil {
 		return nil, err
 	}
-
-	schemas = append(schemas, pipeline.prompt.Schemas.Samples...)
-
 	examples, err := pipeline.context.FetchSimilarDocuments("example", query, 5)
-
 	if err != nil {
 		return nil, err
 	}
-
-	examples = append(examples, pipeline.prompt.Examples.Samples...)
 
 	prompt := pipeline.prompt.Build(query, schemas, examples)
 
 	fmt.Println(prompt)
 
 	statement, err := ollama.Generate(pipeline.model, prompt)
-
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +110,6 @@ func (pipeline *Pipeline) Execute(query string) ([]map[string]any, error) {
 	fmt.Println(statement)
 
 	result, err := pipeline.database.RunQuery(statement)
-
 	if err != nil {
 		return nil, err
 	}

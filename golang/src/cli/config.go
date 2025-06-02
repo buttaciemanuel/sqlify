@@ -69,21 +69,27 @@ func validate(config *Config) error {
 	}
 
 	if !config.Database.Autoschema && len(config.Prompt.Schemas.Items) == 0 {
-		return errors.New("Field config.database.autoschema must be set if you do not provide schemas in config.prompt.schemas.items")
+		return errors.New(
+			"Field config.database.autoschema must be set if you do not provide schemas in config.prompt.schemas.items",
+		)
 	}
 
 	if len(config.Prompt.Examples.Title) == 0 {
-		// fmt.Printf("Field prompt.examples.title set to default `examples`")
 		config.Prompt.Examples.Title = "examples"
 	}
 
+	if len(config.Prompt.Examples.Items) > 0 &&
+		len(config.Prompt.Examples.From) > 0 {
+		return errors.New(
+			"Field config.prompt.examples.items and config.prompt.examples.from cannot be set at the same time",
+		)
+	}
+
 	if len(config.Prompt.Schemas.Title) == 0 {
-		// fmt.Printf("Field prompt.schemas.title set to default `schemas`")
 		config.Prompt.Schemas.Title = "schemas"
 	}
 
 	if len(config.Prompt.Query.Title) == 0 {
-		// fmt.Printf("Field prompt.query.title set to default `user`")
 		config.Prompt.Query.Title = "user"
 	}
 
@@ -98,7 +104,6 @@ func validate(config *Config) error {
 	}
 
 	if task, ok := sections["task"]; !ok {
-		// fmt.Printf("Section `task` is missing, specifying a default one for SQL generation")
 		sections["task"] = struct {
 			Title string
 			Body  string
@@ -108,12 +113,10 @@ func validate(config *Config) error {
 			Body:  "You are a SQL query builder for a specific knowledge base.",
 		}
 	} else if len(task.Body) == 0 {
-		// fmt.Printf("Section `task` is missing a valid body, specifying a default one for SQL generation")
 		task.Body = "You are a SQL query builder for a specific knowledge base."
 	}
 
 	if instruction, ok := sections["instruction"]; !ok {
-		// fmt.Printf("Section `instruction` is missing, specifying a default one for SQL generation")
 		sections["instruction"] = struct {
 			Title string
 			Body  string
@@ -123,12 +126,10 @@ func validate(config *Config) error {
 			Body:  "Your objective is to generate a valid SQL query from the following user input using the given relational table and prior example of queries.",
 		}
 	} else if len(instruction.Body) == 0 {
-		// fmt.Printf("Section `instruction` is missing a valid body, specifying a default one for SQL generation")
 		instruction.Body = "Your objective is to generate a valid SQL query from the following user input using the given relational table and prior example of queries."
 	}
 
 	if rules, ok := sections["rules"]; !ok {
-		// fmt.Printf("Section `rules` is missing, specifying a default one for SQL generation")
 		sections["rules"] = struct {
 			Title string
 			Body  string
@@ -141,7 +142,6 @@ func validate(config *Config) error {
 			},
 		}
 	} else if len(rules.Items) == 0 {
-		// fmt.Printf("Section `rules` is missing valid items, specifying a default one for SQL generation")
 		rules.Items = []string{
 			"Only use the tables specified before to generate the SQL query.",
 			"Only output a SQL statement without explanation.",
@@ -157,7 +157,6 @@ func Parse(configFilePath string) (*Config, error) {
 	var config Config
 
 	data, err := os.ReadFile(configFilePath)
-
 	if err != nil {
 		return nil, err
 	}
@@ -171,4 +170,24 @@ func Parse(configFilePath string) (*Config, error) {
 	}
 
 	return &config, nil
+}
+
+func parseSamples(filePath string) ([]string, error) {
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		return nil, err
+	}
+
+	results := strings.Split(string(data), "\n\n")
+	samples := []string{}
+
+	for _, sample := range results {
+		sample = strings.TrimSpace(sample)
+
+		if strings.HasPrefix(sample, "--") && strings.HasSuffix(sample, ";") {
+			samples = append(samples, sample)
+		}
+	}
+
+	return samples, nil
 }

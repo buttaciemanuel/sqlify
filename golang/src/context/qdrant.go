@@ -51,6 +51,19 @@ func (dataContext *QdrantStore) Initialize(subContexts []string) error {
 	return nil
 }
 
+func (dataContext *QdrantStore) ContainsDocument(subContext string, document Document) (bool, error) {
+	results, err := dataContext.client.Get(context.Background(), &qdrant.GetPoints{
+		CollectionName: subContext,
+		Ids:            []*qdrant.PointId{qdrant.NewIDUUID(document.UUID())},
+	})
+
+	if err != nil {
+		return false, fetchDocumentsError(err)
+	}
+
+	return len(results) > 0, nil
+}
+
 func (dataContext *QdrantStore) Clear() error {
 	collectionNames, err := dataContext.client.ListCollections(context.Background())
 

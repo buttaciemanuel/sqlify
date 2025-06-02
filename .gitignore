@@ -1,6 +1,6 @@
 *.db
 *.duckdb
 qdrant_storage
-main
 flood
+main
 design
