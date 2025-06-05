@@ -3,8 +3,9 @@ package context
 import (
 	"context"
 
-	"github.com/buttaciemanuel/sqlify/embed"
 	"github.com/qdrant/go-client/qdrant"
+
+	"github.com/buttaciemanuel/sqlify/embed"
 )
 
 type QdrantStore struct {
@@ -14,10 +15,9 @@ type QdrantStore struct {
 
 func Qdrant(embedder embed.Embedder) (*QdrantStore, error) {
 	client, err := qdrant.NewClient(&qdrant.Config{
-		Host: "localhost",
+		Host: "qdrant",
 		Port: 6334,
 	})
-
 	if err != nil {
 		return nil, openDocumentStoreError(err)
 	}
@@ -27,8 +27,10 @@ func Qdrant(embedder embed.Embedder) (*QdrantStore, error) {
 
 func (dataContext *QdrantStore) Initialize(subContexts []string) error {
 	for _, subContext := range subContexts {
-		exists, err := dataContext.client.CollectionExists(context.Background(), subContext)
-
+		exists, err := dataContext.client.CollectionExists(
+			context.Background(),
+			subContext,
+		)
 		if err != nil {
 			return checkDocumentCollectionError(err)
 		}
@@ -51,12 +53,19 @@ func (dataContext *QdrantStore) Initialize(subContexts []string) error {
 	return nil
 }
 
-func (dataContext *QdrantStore) ContainsDocument(subContext string, document Document) (bool, error) {
-	results, err := dataContext.client.Get(context.Background(), &qdrant.GetPoints{
-		CollectionName: subContext,
-		Ids:            []*qdrant.PointId{qdrant.NewIDUUID(document.UUID())},
-	})
-
+func (dataContext *QdrantStore) ContainsDocument(
+	subContext string,
+	document Document,
+) (bool, error) {
+	results, err := dataContext.client.Get(
+		context.Background(),
+		&qdrant.GetPoints{
+			CollectionName: subContext,
+			Ids: []*qdrant.PointId{
+				qdrant.NewIDUUID(document.UUID()),
+			},
+		},
+	)
 	if err != nil {
 		return false, fetchDocumentsError(err)
 	}
@@ -65,22 +74,28 @@ func (dataContext *QdrantStore) ContainsDocument(subContext string, document Doc
 }
 
 func (dataContext *QdrantStore) Clear() error {
-	collectionNames, err := dataContext.client.ListCollections(context.Background())
-
+	collectionNames, err := dataContext.client.ListCollections(
+		context.Background(),
+	)
 	if err != nil {
 		return checkDocumentCollectionError(err)
 	}
 
 	for _, collectionName := range collectionNames {
-		dataContext.client.DeleteCollection(context.Background(), collectionName)
+		dataContext.client.DeleteCollection(
+			context.Background(),
+			collectionName,
+		)
 	}
 
 	return nil
 }
 
-func (dataContext *QdrantStore) StoreDocument(subContext string, document Document) error {
+func (dataContext *QdrantStore) StoreDocument(
+	subContext string,
+	document Document,
+) error {
 	embedding, err := document.Embedding(&dataContext.embedder)
-
 	if err != nil {
 		return err
 	}
@@ -101,20 +116,24 @@ func (dataContext *QdrantStore) StoreDocument(subContext string, document Docume
 	return nil
 }
 
-func (dataContext *QdrantStore) FetchSimilarDocuments(subContext, queryKey string, limit uint) ([]Document, error) {
+func (dataContext *QdrantStore) FetchSimilarDocuments(
+	subContext, queryKey string,
+	limit uint,
+) ([]Document, error) {
 	embedding, err := dataContext.embedder.Embed(queryKey)
-
 	if err != nil {
 		return nil, err
 	}
 
-	results, err := dataContext.client.Query(context.Background(), &qdrant.QueryPoints{
-		CollectionName: subContext,
-		Query:          qdrant.NewQuery(embedding...),
-		WithPayload:    qdrant.NewWithPayload(true),
-		Limit:          qdrant.PtrOf(uint64(limit)),
-	})
-
+	results, err := dataContext.client.Query(
+		context.Background(),
+		&qdrant.QueryPoints{
+			CollectionName: subContext,
+			Query:          qdrant.NewQuery(embedding...),
+			WithPayload:    qdrant.NewWithPayload(true),
+			Limit:          qdrant.PtrOf(uint64(limit)),
+		},
+	)
 	if err != nil {
 		return nil, fetchDocumentsError(err)
 	}

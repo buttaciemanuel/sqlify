@@ -1,0 +1,14 @@
+context:
+  store: qdrant
+  embedder: snowflake-arctic-embed:22m
+database:
+  autoschema: true
+  duckdb:
+    filename: /data/database.duckdb
+model:
+  name: phi4
+  url: ollama:11435/api/generate
+prompt:
+  examples:
+    from: /data/examples.sql
+

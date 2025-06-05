@@ -1,5 +1,3 @@
-*.db
-*.duckdb
 qdrant_storage
 flood
 main

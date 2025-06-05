@@ -19,7 +19,7 @@ func Generate(model Model, prompt string) (string, error) {
 		"stream": false,
 	})
 	response, err := http.Post(
-		model.Url, // "http://localhost:11434/api/generate",
+		model.Url,
 		"application/json",
 		bytes.NewBuffer(params),
 	)

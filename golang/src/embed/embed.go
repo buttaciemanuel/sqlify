@@ -33,13 +33,15 @@ func (embedder Embedder) EmbedMany(texts []string) ([][]float32, error) {
 		"model": embedder.name,
 		"input": texts,
 	})
-
 	if err != nil {
 		return nil, createEmbeddingRequestError(err)
 	}
 
-	response, err := http.Post("http://localhost:11434/api/embed", "application/json", bytes.NewBuffer(parameters))
-
+	response, err := http.Post(
+		"http://ollama:11434/api/embed",
+		"application/json",
+		bytes.NewBuffer(parameters),
+	)
 	if err != nil {
 		return nil, sendEmbeddingRequestError(err)
 	}
@@ -55,7 +57,6 @@ func (embedder Embedder) EmbedMany(texts []string) ([][]float32, error) {
 	}
 
 	rawBody, err := io.ReadAll(response.Body)
-
 	if err != nil {
 		return nil, readEmbeddingResponseError(err)
 	}

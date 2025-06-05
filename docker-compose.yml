@@ -16,6 +16,16 @@ services:
       - 11435:11434
     volumes:
         - ollama:/root/.ollama
+  server:
+    container_name: server
+    build: .
+    ports:
+      - 3001:3001
+    depends_on:
+      - qdrant
+      - ollama
+    volumes:
+      - ./data:/data
 
 volumes:
   ollama:
