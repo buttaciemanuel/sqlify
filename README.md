@@ -16,7 +16,6 @@ database:
     filename: /data/database.duckdb
 model:
   name: phi4
-  url: ollama:11435/api/generate
 prompt:
   examples:
     from: /data/examples.sql
@@ -47,5 +46,10 @@ The dockerized process runs Sqlify as a server.
 Questions can now be asked by firing POST questions to the server.
 
 ```sh
+# on linux or macos
 curl -X POST -H "Content-Type: application/json" -H "Accept: application/json" http://localhost:3001 -d "{ \"query\": \"<YOUR QUESTION HERE>\" }" | jq .
+# on windows
+curl.exe -X POST -H "Content-Type: application/json" -H "Accept: application/json" http://localhost:3001 -d "{ `"query`": `"<YOUR QUESTION HERE>`" }" | jq .
 ```
+
+> Note that the first execution will take quite long (around five minutes) to pull the embedding and large language model.

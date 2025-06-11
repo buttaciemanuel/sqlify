@@ -16,13 +16,29 @@ func (err PromptSubmissionError) Unwrap() error {
 }
 
 func sendPromptRequestError(err error) PromptSubmissionError {
-	return PromptSubmissionError{err: err, context: "Unable to send post request to Ollama to submit"}
+	return PromptSubmissionError{
+		err:     err,
+		context: "Unable to send post request to Ollama to submit",
+	}
+}
+
+func pullModelRequestError(err error) PromptSubmissionError {
+	return PromptSubmissionError{
+		err:     err,
+		context: "Unable to pull model in Ollama",
+	}
 }
 
 func readResponseError(err error) PromptSubmissionError {
-	return PromptSubmissionError{err: err, context: "Unable to read response from Ollama"}
+	return PromptSubmissionError{
+		err:     err,
+		context: "Unable to read response from Ollama",
+	}
 }
 
 func unpackResponseError(err error) PromptSubmissionError {
-	return PromptSubmissionError{err: err, context: "Unable to unpack embedding response as JSON from Ollama"}
+	return PromptSubmissionError{
+		err:     err,
+		context: "Unable to unpack embedding response as JSON from Ollama",
+	}
 }

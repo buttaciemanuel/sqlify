@@ -13,6 +13,7 @@ import (
 	"github.com/buttaciemanuel/sqlify/context"
 	"github.com/buttaciemanuel/sqlify/datasource"
 	"github.com/buttaciemanuel/sqlify/embed"
+	"github.com/buttaciemanuel/sqlify/ollama"
 	"github.com/buttaciemanuel/sqlify/pipeline"
 	"github.com/buttaciemanuel/sqlify/prompt"
 )
@@ -35,7 +36,7 @@ func Run() error {
 	subcommands[0].PersistentFlags().
 		String("configuration", "config.yaml", "Path to the configuration file")
 	subcommands[0].PersistentFlags().
-		Uint("port", 3000, "Port number for the server")
+		Uint("port", 3001, "Port number for the server")
 
 	subcommands[1].PersistentFlags().
 		String("configuration", "config.yaml", "Path to the configuration file")
@@ -154,6 +155,18 @@ func configure(path string) (*pipeline.Config, error) {
 		return nil, err
 	}
 
+	fmt.Printf("Pulling embedding model '%s'\n", config.Context.Embedder)
+
+	if err := ollama.Pull(config.Context.Embedder); err != nil {
+		return nil, err
+	}
+
+	fmt.Printf("Pulling large language model '%s'\n", config.Model.Name)
+
+	if err := ollama.Pull(config.Model.Name); err != nil {
+		return nil, err
+	}
+
 	var embeddingModel embed.Embedder
 
 	if config.Context.Embedder == embed.SnowflakeArticEmbed.Name() {
@@ -173,14 +186,12 @@ func configure(path string) (*pipeline.Config, error) {
 		modelContext = connection
 	}
 
-	// if err := modelContext.Clear(); err != nil {
-	// 	return nil, err
-	// }
-
 	var modelDatabase *datasource.Database
 
 	if len(config.Database.Duckdb.Filename) > 0 {
-		connection, err := datasource.Duckdb(config.Database.Duckdb.Filename)
+		connection, err := datasource.Duckdb(
+			config.Database.Duckdb.Filename,
+		)
 		if err != nil {
 			return nil, err
 		}

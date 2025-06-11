@@ -9,3 +9,5 @@ RUN go mod download
 RUN CGO_ENABLED=1 GOOS=linux go build -o sqlify .
 
 CMD ["./sqlify", "serve", "--configuration", "/data/config.yaml", "--port", "3001"]
+
+EXPOSE 3001

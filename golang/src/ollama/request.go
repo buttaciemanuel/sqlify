@@ -9,7 +9,7 @@ import (
 )
 
 type Model struct {
-	Name, Url string
+	Name string
 }
 
 func Generate(model Model, prompt string) (string, error) {
@@ -19,7 +19,7 @@ func Generate(model Model, prompt string) (string, error) {
 		"stream": false,
 	})
 	response, err := http.Post(
-		model.Url,
+		"http://ollama:11434/api/generate",
 		"application/json",
 		bytes.NewBuffer(params),
 	)
@@ -55,4 +55,36 @@ func Generate(model Model, prompt string) (string, error) {
 	}
 
 	return content.Response, nil
+}
+
+func Pull(model string) error {
+	params, _ := json.Marshal(map[string]any{
+		"name":   model,
+		"stream": false,
+	})
+	response, err := http.Post(
+		"http://ollama:11434/api/pull",
+		"application/json",
+		bytes.NewBuffer(params),
+	)
+	if err != nil {
+		return pullModelRequestError(err)
+	}
+
+	defer response.Body.Close()
+
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return readResponseError(err)
+	}
+
+	var content struct {
+		Response string `json:"response"`
+	}
+
+	if err := json.Unmarshal(body, &content); err != nil {
+		return unpackResponseError(err)
+	}
+
+	return nil
 }

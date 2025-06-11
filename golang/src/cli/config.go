@@ -23,7 +23,6 @@ type Config struct {
 	}
 	Model struct {
 		Name string
-		Url  string
 	}
 	Prompt struct {
 		Schemas struct {
@@ -62,10 +61,6 @@ func validate(config *Config) error {
 
 	if len(config.Model.Name) == 0 {
 		return errors.New("Field model.name cannot be empty")
-	}
-
-	if len(config.Model.Url) == 0 {
-		return errors.New("Field model.url cannot be empty")
 	}
 
 	if !config.Database.Autoschema && len(config.Prompt.Schemas.Items) == 0 {
